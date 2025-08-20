@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kitchen Inventory Receipt Scanner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Montserrat', Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      margin: 60px auto 0 auto;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+      padding: 40px 32px 32px 32px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeIn 1.2s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 {
+      color: #3b3b5c;
+      font-size: 2.3rem;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      text-align: center;
+      text-shadow: 0 2px 8px #e0e7ff;
+    }
+    .scanner-icon {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .scanner-icon i {
+      font-size: 3.2rem;
+      color: #6366f1;
+      filter: drop-shadow(0 2px 8px #a5b4fc);
+      animation: scannerPulse 1.5s infinite alternate;
+    }
+    @keyframes scannerPulse {
+      0% { color: #6366f1; }
+      100% { color: #818cf8; }
+    }
+    .upload-section {
+      margin: 30px 0 18px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    label[for="receipt"] {
+      font-size: 1.1rem;
+      color: #4b5563;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    .custom-file-input {
+      display: none;
+    }
+    .file-label {
+      display: inline-block;
+      background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      box-shadow: 0 2px 8px #a5b4fc44;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .file-label:hover {
+      background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+      transform: scale(1.04);
+    }
+    #file-chosen {
+      margin-left: 10px;
+      color: #6366f1;
+      font-weight: 500;
+    }
+    button[type="submit"] {
+      margin-top: 18px;
+      background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 32px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #a5b4fc44;
+      transition: background 0.2s, transform 0.2s;
+    }
+    button[type="submit"]:hover {
+      background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+      transform: scale(1.04);
+    }
+    ul {
+      color: #ef4444;
+      margin: 0 0 10px 0;
+      padding: 0 0 0 18px;
+    }
+    .result {
+      background: linear-gradient(135deg, #f1f5f9 0%, #e0e7ff 100%);
+      padding: 18px 18px 10px 18px;
+      border-radius: 10px;
+      margin-top: 24px;
+      box-shadow: 0 2px 8px #a5b4fc22;
+      animation: fadeIn 1.2s cubic-bezier(.4,0,.2,1);
+    }
+    .result h3 {
+      margin-top: 0;
+      color: #6366f1;
+      font-size: 1.2rem;
+    }
+    .result pre {
+      background: #fff;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 1rem;
+      color: #374151;
+      max-height: 250px;
+      overflow-y: auto;
+      box-shadow: 0 1px 4px #a5b4fc22;
+    }
+    .reference {
+      margin-top: 40px;
+      font-size: 1.05em;
+      text-align: center;
+      color: #64748b;
+    }
+    .reference a {
+      color: #6366f1;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .reference a:hover {
+      color: #818cf8;
+      text-decoration: underline;
+    }
+    @media (max-width: 700px) {
+      .container { padding: 18px 4vw 18px 4vw; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="scanner-icon">
+      <i class="fa-solid fa-receipt"></i>
+    </div>
+    <h1>Kitchen Inventory Receipt Scanner</h1>
+    <form method="POST" enctype="multipart/form-data" class="upload-section">
+      <label for="receipt">Upload a picture of your receipt here:</label>
+      <label class="file-label" for="receipt"><i class="fa-solid fa-upload"></i> Choose File</label>
+      <input type="file" id="receipt" name="receipt" accept="image/*,.pdf" class="custom-file-input" required onchange="updateFileName()">
+      <span id="file-chosen">No file chosen</span>
+      <button type="submit"><i class="fa-solid fa-paper-plane"></i> Upload</button>
+    </form>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    {% endwith %}
+    {% if extracted_text %}
+    <div class="result">
+      <h3><i class="fa-solid fa-file-lines"></i> Extracted Text:</h3>
+      <pre>{{ extracted_text }}</pre>
+    </div>
+    {% endif %}
+    <div class="reference">
+      Reference: <a href="https://mjbylak.github.io" target="_blank">mjbylak.github.io</a>
+    </div>
+  </div>
+  <script>
+    function updateFileName() {
+      const input = document.getElementById('receipt');
+      const fileChosen = document.getElementById('file-chosen');
+      if (input.files && input.files.length > 0) {
+        fileChosen.textContent = input.files[0].name;
+      } else {
+        fileChosen.textContent = 'No file chosen';
+      }
+    }
+    // Animate the upload button on click
+    document.querySelector('button[type="submit"]').addEventListener('mousedown', function() {
+      this.style.transform = 'scale(0.97)';
+    });
+    document.querySelector('button[type="submit"]').addEventListener('mouseup', function() {
+      this.style.transform = 'scale(1)';
+    });
+    // Animate the file label on click
+    document.querySelector('.file-label').addEventListener('mousedown', function() {
+      this.style.transform = 'scale(0.97)';
+    });
+    document.querySelector('.file-label').addEventListener('mouseup', function() {
+      this.style.transform = 'scale(1.04)';
+    });
+  </script>
+</body>
+</html>
