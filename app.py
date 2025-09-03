@@ -17,30 +17,102 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def get_entity_value(entity):
+    """Helper function to get text value from an entity."""
+    text_anchor = entity.text_anchor
+    return text_anchor.content if text_anchor else None
+
+
+def process_line_item(entity):
+    """Process a line item entity and extract its properties."""
+    item = {}
+    for property in entity.properties:
+        prop_type = property.type_
+        if prop_type == "line_item/description":
+            item["description"] = get_entity_value(property)
+        elif prop_type == "line_item/amount":
+            item["amount"] = get_entity_value(property)
+        elif prop_type == "line_item/quantity":
+            item["quantity"] = get_entity_value(property)
+    return item
+
+
+def process_basic_entity(type_name, mention_text, extracted_data):
+    """Process basic entity types (merchant, date, total)."""
+    if type_name == "merchant_name":
+        extracted_data["merchant_name"] = mention_text
+    elif type_name == "receipt_date":
+        extracted_data["receipt_date"] = mention_text
+    elif type_name == "total_amount":
+        extracted_data["total_amount"] = mention_text
+
+
+def process_line_item_name(entity):
+    """Extract only the item name from a line item entity."""
+    for property in entity.properties:
+        if property.type_ == "line_item/description":
+            return get_entity_value(property)
+    return None
+
+
+def extract_entities(document):
+    """Extract relevant entities from the document using Document AI."""
+    extracted_data = {
+        "merchant_name": None,
+        "receipt_date": None,
+        "total_amount": None,
+        "items": [],
+        "raw_text": document.text,
+        "confidence": document.entities[0].confidence if document.entities else 0,
+    }
+
+    for entity in document.entities:
+        type_name = entity.type_
+        mention_text = get_entity_value(entity)
+
+        if type_name == "line_item":
+            item_name = process_line_item_name(entity)
+            if item_name:
+                extracted_data["items"].append({"name": item_name, "quantity": 1})
+        else:
+            process_basic_entity(type_name, mention_text, extracted_data)
+
+    return extracted_data
+
+
 def process_receipt_with_documentai(file_path):
     # Set your GCP project and processor details here
     project_id = "YOUR_PROJECT_ID"
     location = "us"  # Format: 'us' or 'eu'
     processor_id = "YOUR_PROCESSOR_ID"  # Create processor in GCP Console
 
-    client = documentai.DocumentUnderstandingServiceClient()
-    name = f"projects/{project_id}/locations/{location}/processors/{processor_id}"
+    # Initialize the Document AI client
+    client = documentai.DocumentProcessorServiceClient()
+    processor_name = (
+        f"projects/{project_id}/locations/{location}/processors/{processor_id}"
+    )
 
+    # Read the file
     with open(file_path, "rb") as image:
         image_content = image.read()
 
-    raw_document = documentai.RawDocument(
+    # Create the document object
+    document = documentai.Document(
         content=image_content,
         mime_type="application/pdf" if file_path.endswith(".pdf") else "image/jpeg",
     )
-    request = documentai.ProcessRequest(name=name, raw_document=raw_document)
+
+    # Process the document
+    request = documentai.ProcessRequest(name=processor_name, document=document)
     result = client.process_document(request=request)
-    return result.document.text
+
+    # Extract and return the processed data
+    return extract_entities(result.document)
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    extracted_text = None
+    extracted_data = None
     if request.method == "POST":
         if "receipt" not in request.files:
             flash("No file part")
@@ -54,12 +126,12 @@ def index():
             file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
             file.save(file_path)
             try:
-                extracted_text = process_receipt_with_documentai(file_path)
+                extracted_data = process_receipt_with_documentai(file_path)
             except Exception as e:
                 flash(f"Error processing document: {e}")
         else:
             flash("Invalid file type. Allowed: png, jpg, jpeg, pdf")
-    return render_template("app.html", extracted_text=extracted_text)
+    return render_template("app.html", receipt_data=extracted_data)
 
 
 if __name__ == "__main__":

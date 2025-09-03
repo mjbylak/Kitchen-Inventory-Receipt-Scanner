@@ -1,3 +1,5 @@
 flask
 google-cloud-documentai
 werkzeug
+gunicorn
+google-cloud-storage
