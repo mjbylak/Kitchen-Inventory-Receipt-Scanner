@@ -4,7 +4,7 @@ from google.cloud import documentai_v1 as documentai
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # Needed for flash messages
+app.secret_key = "supersecretkey"
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "pdf"}
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
@@ -18,13 +18,11 @@ def allowed_file(filename):
 
 
 def get_entity_value(entity):
-    """Helper function to get text value from an entity."""
     text_anchor = entity.text_anchor
     return text_anchor.content if text_anchor else None
 
 
 def process_line_item(entity):
-    """Process a line item entity and extract its properties."""
     item = {}
     for property in entity.properties:
         prop_type = property.type_
@@ -38,7 +36,6 @@ def process_line_item(entity):
 
 
 def process_basic_entity(type_name, mention_text, extracted_data):
-    """Process basic entity types (merchant, date, total)."""
     if type_name == "merchant_name":
         extracted_data["merchant_name"] = mention_text
     elif type_name == "receipt_date":
@@ -48,7 +45,6 @@ def process_basic_entity(type_name, mention_text, extracted_data):
 
 
 def process_line_item_name(entity):
-    """Extract only the item name from a line item entity."""
     for property in entity.properties:
         if property.type_ == "line_item/description":
             return get_entity_value(property)
@@ -56,7 +52,6 @@ def process_line_item_name(entity):
 
 
 def extract_entities(document):
-    """Extract relevant entities from the document using Document AI."""
     extracted_data = {
         "merchant_name": None,
         "receipt_date": None,
@@ -81,10 +76,9 @@ def extract_entities(document):
 
 
 def process_receipt_with_documentai(file_path):
-    # Set your GCP project and processor details here
     project_id = "YOUR_PROJECT_ID"
-    location = "us"  # Format: 'us' or 'eu'
-    processor_id = "YOUR_PROCESSOR_ID"  # Create processor in GCP Console
+    location = "us"
+    processor_id = "YOUR_PROCESSOR_ID"
 
     # Initialize the Document AI client
     client = documentai.DocumentProcessorServiceClient()
@@ -106,7 +100,6 @@ def process_receipt_with_documentai(file_path):
     request = documentai.ProcessRequest(name=processor_name, document=document)
     result = client.process_document(request=request)
 
-    # Extract and return the processed data
     return extract_entities(result.document)
 
 
